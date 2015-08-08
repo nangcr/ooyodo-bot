@@ -10,10 +10,11 @@
 
 using namespace std;
 
+static const string HIDE_KEYBOARD = "{\"hide_keyboard\":true,\"selective\":true}";
 static const string BOT_TOKEN = ""; //Enter your bot token here
 static bool app_quiting = false;
 
-static void tg_send_message(const string &text, const string &chat_id, const string &reply_to = "");
+static void tg_send_message(const string &text, const string &chat_id, const string &keyboard, const string &reply_to = "");
 static json::value fetch_quest_info();
 
 
@@ -41,7 +42,7 @@ static void tg_dispatch_message(const json::value &message) {
     // Handle message
 
     if(text.find("ping") != text.npos) {
-        tg_send_message("Pong!", chat_id, msg_id);
+        tg_send_message("Pong!", chat_id, HIDE_KEYBOARD, msg_id);
     }
 
     auto quest_pos = text.npos;
@@ -98,7 +99,7 @@ static void tg_dispatch_message(const json::value &message) {
             reply += to_string(quest_info["reward_alum"]);
             reply += "\n　　　";
             reply += to_string(quest_info["reward_other"]);
-            tg_send_message(reply, chat_id, msg_id);
+            tg_send_message(reply, chat_id, HIDE_KEYBOARD, msg_id);
         };
         for(const auto &i : to_array(quest_info)) {
             const string &wiki_id = to_string(i["wiki_id"]);
@@ -110,7 +111,7 @@ static void tg_dispatch_message(const json::value &message) {
 
         //Easter egg
         if(quest_content.compare(0, 2, "A2")  == 0) {
-        tg_send_message("A2？不，不认识的孩子呢。", chat_id, msg_id);
+        tg_send_message("A2？不，不认识的孩子呢。",  chat_id, HIDE_KEYBOARD, msg_id);
         return ;
     }
 
@@ -128,25 +129,25 @@ static void tg_dispatch_message(const json::value &message) {
             reply_quest_info(quest_matches.front());
             return;
         } else {
-            string reply;
+            string keyboard;
             size_t count = 0;
-            reply += to_string(quest_matches.size());
-            reply += "つ任務（クエスト）が一致する：";
+            keyboard += "{\"keyboard\":[";
             for(const auto &quest_info : quest_matches) {
-                if(++count > 8) {
-                    reply += "\n…";
-                    break;
+                keyboard += "[\"/";
+                keyboard += to_string(quest_info["wiki_id"]);
+                keyboard += " ";
+                keyboard += to_string(quest_info["name"]);
+                keyboard += "\"]";
+                if(++count != quest_matches.size()) {
+                    keyboard += ",";
                 }
-                reply += "\n/";
-                reply += to_string(quest_info["wiki_id"]);
-                reply += "：";
-                reply += to_string(quest_info["detail"]);
             }
-            tg_send_message(reply, chat_id, msg_id);
+            keyboard += "],\"resize_keyboard\":true,\"one_time_keyboard\":true,\"selective\":true}";
+            tg_send_message("请选择你要查询的任务", chat_id, keyboard, msg_id);
             return;
         }
         if(text.compare(0, 6, "/quest") == 0) {
-            tg_send_message("そのような任務（クエスト）はありません。", chat_id, msg_id);
+            tg_send_message("そのような任務（クエスト）はありません。", chat_id, HIDE_KEYBOARD, msg_id);
         }
     }
 }
@@ -213,7 +214,7 @@ static size_t tg_send_message_callback(void *ptr, size_t size, size_t nmemb, voi
     return nmemb;
 }
 
-static void tg_send_message(const string &text, const string &chat_id, const string &reply_to) {
+static void tg_send_message(const string &text, const string &chat_id, const string &keyboard, const string &reply_to) {
     clog << "Send:  " << text << endl
          << "To:    " << chat_id << endl
          << "Reply: " << reply_to << endl
@@ -227,6 +228,8 @@ static void tg_send_message(const string &text, const string &chat_id, const str
         addr += "&reply_to_message_id=";
         addr += http_escape(reply_to);
     }
+    addr += "&reply_markup=";
+    addr += http_escape(keyboard);
     addr += "&text=";
     addr += http_escape(text);
 
