@@ -12,6 +12,7 @@ using namespace std;
 
 static const string HIDE_KEYBOARD = "{\"hide_keyboard\":true,\"selective\":true}";
 static const string BOT_TOKEN = ""; //Enter your bot token here
+static const string BOT_ID = ""; //Be included in TOKEN
 static bool app_quiting = false;
 
 static void tg_send_message(const string &text, const string &chat_id, const string &keyboard, const string &reply_to = "");
@@ -38,6 +39,10 @@ static void tg_dispatch_message(const json::value &message) {
     try {
         text = to_string(message["text"]);
     } catch(json::invalid_index) {}
+    string reply_to_id;
+    try {
+        reply_to_id = to_string(message["reply_to_message"]["from"]["id"]);
+    } catch(json::invalid_index) {}
 
     // Handle message
 
@@ -61,6 +66,8 @@ static void tg_dispatch_message(const json::value &message) {
     tmp_pos = text.find("quest");
     if(tmp_pos != text.npos)
         quest_pos = min(quest_pos, tmp_pos + 5);
+    if (reply_to_id == BOT_ID)
+        quest_pos = 0;
     if(quest_pos != text.npos && quest_pos != text.length()) {
         for(;;) {
             if(quest_pos != text.length() && text[quest_pos] == ' ')
@@ -133,9 +140,7 @@ static void tg_dispatch_message(const json::value &message) {
             size_t count = 0;
             keyboard += "{\"keyboard\":[";
             for(const auto &quest_info : quest_matches) {
-                keyboard += "[\"/";
-                keyboard += to_string(quest_info["wiki_id"]);
-                keyboard += " ";
+                keyboard += "[\"";
                 keyboard += to_string(quest_info["name"]);
                 keyboard += "\"]";
                 if(++count != quest_matches.size()) {
