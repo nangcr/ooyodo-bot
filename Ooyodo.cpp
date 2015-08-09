@@ -52,7 +52,7 @@ static void tg_dispatch_message(const json::value &message) {
 
     auto quest_pos = text.npos;
     auto tmp_pos = text.find("/");
-    if(tmp_pos == 0)
+    if(tmp_pos == 0 && text.compare(0, 6, "/quest") != 0)
         quest_pos = 1;
     tmp_pos = text.find("任务");
     if(tmp_pos != text.npos)
