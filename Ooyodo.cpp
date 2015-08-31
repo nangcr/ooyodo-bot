@@ -20,7 +20,7 @@ static json::value fetch_quest_info();
 
 
 static void tg_dispatch_message(const json::value &message) {
-    clog << "ID:   " << to_string(message["message_id"]) << endl
+    clog << "ID:   " << to_string(message["message_id"]) << endl;
     try {
         clog << "From: " << to_string(message["from"]["username"]) << endl;
     } catch(json::invalid_index) {
