@@ -1,9 +1,10 @@
+#include <string>
+#include "config.h"
 #include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <iostream>
 #include <list>
-#include <string>
 #include <unistd.h>
 #include <curl/curl.h>
 #include "cpp-json/json.h"
@@ -11,17 +12,20 @@
 using namespace std;
 
 static const string HIDE_KEYBOARD = "{\"hide_keyboard\":true,\"selective\":true}";
-static const string BOT_TOKEN = ""; //Enter your bot token here
-static const string BOT_ID = ""; //Be included in TOKEN
+
 static bool app_quiting = false;
 
-static void tg_send_message(const string &text, const string &chat_id, const string &keyboard, const string &reply_to = "");
+static void tg_send_message(const string &text, const string &chat_id, const string &reply_markup = HIDE_KEYBOARD, const string &reply_to = "");
 static json::value fetch_quest_info();
 
 
 static void tg_dispatch_message(const json::value &message) {
-    clog << "ID:   " << to_string(message["message_id"]) << endl
-         << "From: " << to_string(message["from"]["username"]) << endl;
+    clog << "ID:   " << to_string(message["message_id"]) << endl;
+    try {
+        clog << "From: " << to_string(message["from"]["username"]) << endl;
+    } catch(json::invalid_index) {
+        clog << "From: (username unset)" << endl;
+    }
     try {
         clog << "Chat: " << to_string(message["chat"]["title"]) << endl;
     } catch(json::invalid_index) {}
@@ -136,19 +140,18 @@ static void tg_dispatch_message(const json::value &message) {
             reply_quest_info(quest_matches.front());
             return;
         } else {
-            string keyboard;
-            size_t count = 0;
-            keyboard += "{\"keyboard\":[";
+            json::object reply_markup;
+            reply_markup.insert("one_time_keyboard", true)
+                        .insert("resize_keyboard", true)
+                        .insert("selective", true);
+            json::array keyboard;
             for(const auto &quest_info : quest_matches) {
-                keyboard += "[\"";
-                keyboard += to_string(quest_info["name"]);
-                keyboard += "\"]";
-                if(++count != quest_matches.size()) {
-                    keyboard += ",";
-                }
+                json::array keyboard_row;
+                keyboard_row.append(to_string(quest_info["name"]));
+                keyboard.append(std::move(keyboard_row));
             }
-            keyboard += "],\"resize_keyboard\":true,\"one_time_keyboard\":true,\"selective\":true}";
-            tg_send_message("请选择你要查询的任务", chat_id, keyboard, msg_id);
+            reply_markup.insert("keyboard", std::move(keyboard));
+            tg_send_message("请选择你要查询的任务", chat_id, stringify(reply_markup), msg_id);
             return;
         }
         if(text.compare(0, 6, "/quest") == 0) {
@@ -219,7 +222,7 @@ static size_t tg_send_message_callback(void *ptr, size_t size, size_t nmemb, voi
     return nmemb;
 }
 
-static void tg_send_message(const string &text, const string &chat_id, const string &keyboard, const string &reply_to) {
+static void tg_send_message(const string &text, const string &chat_id, const string &reply_markup, const string &reply_to) {
     clog << "Send:  " << text << endl
          << "To:    " << chat_id << endl
          << "Reply: " << reply_to << endl
@@ -234,7 +237,7 @@ static void tg_send_message(const string &text, const string &chat_id, const str
         addr += http_escape(reply_to);
     }
     addr += "&reply_markup=";
-    addr += http_escape(keyboard);
+    addr += http_escape(reply_markup);
     addr += "&text=";
     addr += http_escape(text);
 
