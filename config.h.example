@@ -1,0 +1,4 @@
+// Enter your bot token here
+static const std::string BOT_TOKEN = "bot123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11";
+// Enter again the numeric part of BOT_TOKEN
+static const std::string BOT_ID    =    "123456";
