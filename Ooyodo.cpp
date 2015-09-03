@@ -217,7 +217,13 @@ static json::value tg_get_updates() {
     retry_timeout = 5;
 
     json::value response_json = json::parse(response);
-    for(const auto &message : to_array(response_json["result"])) {
+    json::array messages;
+    try {
+        messages = to_array(response_json["result"]);
+    } catch(json::invalid_index) {
+        cerr << "Warning: typeof response[\"result\"] != array" << endl;
+    }
+    for(const auto &message : messages) {
         int message_id = to_number(message["update_id"]);
         request_message_offset = max(request_message_offset, message_id+1);
     }
