@@ -210,7 +210,7 @@ static json::value tg_get_updates() {
             time_to_sleep != 0;
             time_to_sleep = sleep(time_to_sleep)) {
         }
-        retry_timeout = std::min(retry_timeout, retry_timeout+retry_timeout/2);
+        retry_timeout = std::min(retry_timeout+retry_timeout/2, 300u);
         return json::array();
     }
     curl_easy_cleanup(curl);
