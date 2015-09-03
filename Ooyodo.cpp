@@ -222,6 +222,7 @@ static json::value tg_get_updates() {
         messages = to_array(response_json["result"]);
     } catch(json::invalid_index) {
         cerr << "Warning: typeof response[\"result\"] != array" << endl;
+        return json::object().insert("result", json::array());
     }
     for(const auto &message : messages) {
         int message_id = to_number(message["update_id"]);
