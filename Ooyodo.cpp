@@ -198,6 +198,7 @@ static json::value tg_get_updates() {
 
     string response;
 
+    static unsigned int retry_timeout = 5;
     auto curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_URL, addr.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, tg_get_updates_callback);
@@ -205,12 +206,25 @@ static json::value tg_get_updates() {
     auto curlcode = curl_easy_perform(curl);
     if(curlcode != 0) {
         cerr << curl_easy_strerror(curlcode) << endl;
-        return json::value(nullptr);
+        for(unsigned int time_to_sleep = retry_timeout;
+            time_to_sleep != 0;
+            time_to_sleep = sleep(time_to_sleep)) {
+        }
+        retry_timeout = std::min(retry_timeout+retry_timeout/2, 300u);
+        return json::array();
     }
     curl_easy_cleanup(curl);
+    retry_timeout = 5;
 
     json::value response_json = json::parse(response);
-    for(const auto &message : to_array(response_json["result"])) {
+    json::array messages;
+    try {
+        messages = to_array(response_json["result"]);
+    } catch(json::invalid_index) {
+        cerr << "Warning: typeof response[\"result\"] != array" << endl;
+        return json::object().insert("result", json::array());
+    }
+    for(const auto &message : messages) {
         int message_id = to_number(message["update_id"]);
         request_message_offset = max(request_message_offset, message_id+1);
     }
